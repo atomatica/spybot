@@ -8,22 +8,22 @@ import android.preference.PreferenceActivity;
 import com.atomatica.spybot.SerialPortFinder;
 
 public class SerialPortPreferences extends PreferenceActivity {
-	private Application mApplication;
-	private SerialPortFinder mSerialPortFinder;
+	private Application application;
+	private SerialPortFinder serialPortFinder;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		mApplication = (Application) getApplication();
-		mSerialPortFinder = mApplication.mSerialPortFinder;
+		application = (Application)getApplication();
+		serialPortFinder = application.mSerialPortFinder;
 
 		addPreferencesFromResource(R.xml.serial_port_preferences);
 
 		// Devices
 		final ListPreference devices = (ListPreference)findPreference("DEVICE");
-        String[] entries = mSerialPortFinder.getAllDevices();
-        String[] entryValues = mSerialPortFinder.getAllDevicesPath();
+        String[] entries = serialPortFinder.getAllDevices();
+        String[] entryValues = serialPortFinder.getAllDevicesPath();
 		devices.setEntries(entries);
 		devices.setEntryValues(entryValues);
 		devices.setSummary(devices.getValue());
