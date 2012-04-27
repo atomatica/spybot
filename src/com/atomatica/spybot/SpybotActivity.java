@@ -9,6 +9,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -22,6 +23,8 @@ public class SpybotActivity extends Activity {
     public static final byte servo = 20;
     public static final byte rightM = 21;
     public static final byte leftM = 22;
+    
+    private static final String TAG = "SpybotActivity";
     
 	private SpybotApplication mApplication;
 	
@@ -77,31 +80,34 @@ public class SpybotActivity extends Activity {
     
     private class NetworkThread extends Thread {
         private Socket mNetworkPort;
-        private ObjectInputStream mNetworkInput;
-        private ObjectOutputStream mNetworkOutput;
+        private InputStream mNetworkInput;
+        private OutputStream mNetworkOutput;
         
         @Override
         public void run() {
-            // setup network connection
             try {
                 mNetworkPort = new Socket(InetAddress.getByName("atomatica.com"), 9103);
-                mNetworkInput = new ObjectInputStream(mNetworkPort.getInputStream());
-                mNetworkOutput = new ObjectOutputStream(mNetworkPort.getOutputStream());
+                mNetworkInput = mNetworkPort.getInputStream();
+                mNetworkOutput = mNetworkPort.getOutputStream();
                 while(!isInterrupted()) {
-                    if (mNetworkInput != null) {
-                        sendMessage("hello");
-                        try {
-                            String message = (String)mNetworkInput.readObject();
-                            onNetworkDataReceived(message);
+                    if (mNetworkInput != null && mNetworkOutput != null) {
+                        mNetworkOutput.write((byte)0x0);
+                        byte[] buffer = new byte[64];
+                        int size = mNetworkInput.read(buffer);
+                        if (size > 0) {
+                            Log.e(TAG, "Got message: " + buffer);
                         }
-                        
-                        catch (ClassNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                        
-                        catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        /*if (mSerialOutput != null) {
+                            if (message.equalsIgnoreCase("led1")) {
+                                mSerialOutput.write(led1);
+                                mSerialOutput.write((byte)0xaa);
+                            }
+
+                            else if (message.equalsIgnoreCase("led2")) {
+                                mSerialOutput.write(led2);
+                                mSerialOutput.write((byte)0xaa);
+                            }
+                        }*/
                     }
                 }
             }
@@ -117,17 +123,6 @@ public class SpybotActivity extends Activity {
             
             finally {
                 closeConnection();
-            }
-            
-        }
-        
-        private void sendMessage(String message) {
-            try {
-                mNetworkOutput.writeObject(message);
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-                return;
             }
         }
         
@@ -166,7 +161,7 @@ public class SpybotActivity extends Activity {
         mApplication = (SpybotApplication)getApplication();
         
         // setup serial connection
-        try {
+        /*try {
             mSerialPort = mApplication.getSerialPort();
             mSerialInput = mSerialPort.getInputStream();
             mSerialOutput = mSerialPort.getOutputStream();
@@ -190,7 +185,7 @@ public class SpybotActivity extends Activity {
         
         catch (IOException e) {
             DisplayError(R.string.error_unknown);
-        }
+        }*/
 
         // setup network connection
         mNetworkThread = new NetworkThread();
@@ -199,7 +194,7 @@ public class SpybotActivity extends Activity {
         mSerialText = (TextView)findViewById(R.id.serial_text);
         mNetworkText = (TextView)findViewById(R.id.network_text);
         
-        final Button led1Button = (Button)findViewById(R.id.led1_button);
+        /*final Button led1Button = (Button)findViewById(R.id.led1_button);
         led1Button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (mSerialOutput != null) {
@@ -213,7 +208,7 @@ public class SpybotActivity extends Activity {
                     }
                 }
             }
-        });
+        });*/
     }
     
     protected void onSerialDataReceived(final byte[] buffer, final int size) {
