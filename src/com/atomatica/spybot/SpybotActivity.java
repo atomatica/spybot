@@ -80,36 +80,40 @@ public class SpybotActivity extends Activity {
     
     private class NetworkThread extends Thread {
         private Socket mNetworkPort;
-        private InputStream mNetworkInput;
-        private OutputStream mNetworkOutput;
+        private ObjectInputStream mNetworkInput;
+        private ObjectOutputStream mNetworkOutput;
         
         @Override
         public void run() {
             try {
                 mNetworkPort = new Socket(InetAddress.getByName("atomatica.com"), 9103);
-                mNetworkInput = mNetworkPort.getInputStream();
-                mNetworkOutput = mNetworkPort.getOutputStream();
-                while(!isInterrupted()) {
+                mNetworkOutput = new ObjectOutputStream(mNetworkPort.getOutputStream());
+                mNetworkOutput.flush();
+                mNetworkInput = new ObjectInputStream(mNetworkPort.getInputStream());
+                String message = "";
+                do {
                     if (mNetworkInput != null && mNetworkOutput != null) {
-                        mNetworkOutput.write((byte)0x0);
-                        byte[] buffer = new byte[64];
-                        int size = mNetworkInput.read(buffer);
-                        if (size > 0) {
-                            Log.e(TAG, "Got message: " + buffer);
-                        }
-                        /*if (mSerialOutput != null) {
-                            if (message.equalsIgnoreCase("led1")) {
+                        mNetworkOutput.writeObject("KEEPALIVE");
+                        mNetworkOutput.flush();
+                        try {
+                            message = (String)mNetworkInput.readObject();
+                            Log.e(TAG, "Got message: " + message);
+                            /*if (message.equals("LED1")) {
                                 mSerialOutput.write(led1);
                                 mSerialOutput.write((byte)0xaa);
                             }
 
-                            else if (message.equalsIgnoreCase("led2")) {
+                            else if (message.equals("LED2")) {
                                 mSerialOutput.write(led2);
                                 mSerialOutput.write((byte)0xaa);
-                            }
-                        }*/
+                            }*/
+                        }
+                        
+                        catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
+                } while (!message.equals("TERMINATE"));
             }
 
             // server closed connection
