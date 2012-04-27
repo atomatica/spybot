@@ -31,10 +31,7 @@ public class SpybotActivity extends Activity {
 	private SerialReceivingThread mSerialReceivingThread;
     private SerialSendingThread mSerialSendingThread;
 	
-    private Socket mNetworkPort;
-    private ObjectInputStream mNetworkInput;
-    private ObjectOutputStream mNetworkOutput;
-    private NetworkReceivingThread mNetworkReceivingThread;
+    private NetworkThread mNetworkThread;
     
     private TextView mSerialText;
     private TextView mNetworkText;
@@ -78,26 +75,72 @@ public class SpybotActivity extends Activity {
         }
     }
     
-    private class NetworkReceivingThread extends Thread {
+    private class NetworkThread extends Thread {
+        private Socket mNetworkPort;
+        private ObjectInputStream mNetworkInput;
+        private ObjectOutputStream mNetworkOutput;
+        
         @Override
         public void run() {
-            while(!isInterrupted()) {
-                if (mNetworkInput != null) {
-                    try {
-                        String message = (String)mNetworkInput.readObject();
-                        onNetworkDataReceived(message);
-                    }
-                    
-                    catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                        return;
-                    }
-                    
-                    catch (IOException e) {
-                        e.printStackTrace();
-                        return;
+            // setup network connection
+            try {
+                mNetworkPort = new Socket(InetAddress.getByName("atomatica.com"), 9103);
+                mNetworkInput = new ObjectInputStream(mNetworkPort.getInputStream());
+                mNetworkOutput = new ObjectOutputStream(mNetworkPort.getOutputStream());
+                while(!isInterrupted()) {
+                    if (mNetworkInput != null) {
+                        sendMessage("hello");
+                        try {
+                            String message = (String)mNetworkInput.readObject();
+                            onNetworkDataReceived(message);
+                        }
+                        
+                        catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                        
+                        catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
+            }
+
+            // server closed connection
+            catch (EOFException e) {
+                e.printStackTrace();
+            }
+
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            
+            finally {
+                closeConnection();
+            }
+            
+        }
+        
+        private void sendMessage(String message) {
+            try {
+                mNetworkOutput.writeObject(message);
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+        }
+        
+        private void closeConnection() {
+            // close network connection
+            try {
+                mNetworkInput.close();
+                mNetworkOutput.close();
+                mNetworkPort.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+                return;
             }
         }
     }
@@ -148,22 +191,10 @@ public class SpybotActivity extends Activity {
         catch (IOException e) {
             DisplayError(R.string.error_unknown);
         }
-        
+
         // setup network connection
-        try {
-            mNetworkPort = new Socket(InetAddress.getByName("atomatica.com"), 9103);
-            mNetworkInput = new ObjectInputStream(mNetworkPort.getInputStream());
-            mNetworkOutput = new ObjectOutputStream(mNetworkPort.getOutputStream());
-        }
-        
-        // server closed connection
-        catch (EOFException e) {
-            DisplayError(R.string.error_unknown);
-        }
-        
-        catch (IOException e) {
-            DisplayError(R.string.error_unknown);
-        }
+        mNetworkThread = new NetworkThread();
+        mNetworkThread.start();
         
         mSerialText = (TextView)findViewById(R.id.serial_text);
         mNetworkText = (TextView)findViewById(R.id.network_text);
@@ -173,9 +204,8 @@ public class SpybotActivity extends Activity {
             public void onClick(View v) {
                 if (mSerialOutput != null) {
                     try {
-                        //mSerialOutput.write(led1);
-                        //mSerialOutput.write((byte)0xaa);
-                        mNetworkOutput.writeObject("hello");
+                        mSerialOutput.write(led1);
+                        mSerialOutput.write((byte)0xaa);
                     }
                     catch (IOException e) {
                         e.printStackTrace();
@@ -208,16 +238,6 @@ public class SpybotActivity extends Activity {
     
 	@Override
 	protected void onDestroy() {
-	    // close network connection
-	    try {
-	        mNetworkInput.close();
-	        mNetworkOutput.close();
-	        mNetworkPort.close();
-	    }
-	    catch (IOException e) {
-            DisplayError(R.string.error_unknown);
-	    }
-	    
 	    // close serial connection
 		if (mSerialReceivingThread != null) {
 			mSerialReceivingThread.interrupt();
