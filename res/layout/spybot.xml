@@ -8,20 +8,21 @@
     <EditText
         android:id="@+id/EditTextReception"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_weight="1"
+        android:layout_height="100dp"
         android:gravity="top"
         android:hint="Reception"
-        android:scrollbarStyle="insideOverlay"
-        android:isScrollContainer="true">
+        android:isScrollContainer="true"
+        android:scrollbarStyle="insideOverlay">
     </EditText>
 
     <EditText
         android:id="@+id/EditTextEmission"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="100dp"
+        android:gravity="top"
         android:hint="Emission"
-        android:lines="1" >
+        android:isScrollContainer="true"
+        android:scrollbarStyle="insideOverlay">
     </EditText>
 
 </LinearLayout>

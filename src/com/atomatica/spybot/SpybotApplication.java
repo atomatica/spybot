@@ -4,18 +4,19 @@ import java.io.File;
 import java.io.IOException;
 import java.security.InvalidParameterException;
 
+import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
-import com.atomatica.spybot.SerialPort;
-import com.atomatica.spybot.SerialPortFinder;
+import android_serialport_api.SerialPort;
+import android_serialport_api.SerialPortFinder;
 
-public class Application extends android.app.Application {
+public class SpybotApplication extends android.app.Application {
 	public SerialPortFinder mSerialPortFinder = new SerialPortFinder();
 	private SerialPort mSerialPort = null;
 
 	public SerialPort getSerialPort() throws SecurityException, IOException, InvalidParameterException {
 		if (mSerialPort == null) {
 			// get serial port parameters
-			SharedPreferences sp = getSharedPreferences("com.atomatica.spybot.preferences", MODE_PRIVATE);
+			SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
 			String path = sp.getString("DEVICE", "");
 			int baudrate = Integer.decode(sp.getString("BAUDRATE", "-1"));
 

@@ -9,21 +9,18 @@
     <application
         android:icon="@drawable/icon"
         android:label="@string/app_name"
-        android:name="Application" >
+        android:name="SpybotApplication" >
         <activity
             android:label="@string/app_name"
-            android:name="MainMenu" >
+            android:name="HomeActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="SerialPortPreferences" >
+        <activity android:name="SpybotActivity" >
         </activity>
-        <activity android:name="ConsoleActivity" >
+        <activity android:name="SpybotPreferences" >
         </activity>
-        <activity android:name="LoopbackActivity" >
-        </activity>
-        <activity android:name="Sending01010101Activity"></activity>
     </application>
 </manifest>

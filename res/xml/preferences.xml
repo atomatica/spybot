@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="Spybot Preferences">
+    <ListPreference
+        android:key="DEVICE"
+        android:title="Device"
+        android:persistent="true">
+    </ListPreference>
+    <ListPreference
+        android:key="BAUDRATE"
+        android:title="Baud rate"
+        android:entries="@array/baudrates_name"
+        android:entryValues="@array/baudrates_value"
+        android:persistent="true">
+    </ListPreference>
+</PreferenceScreen>
