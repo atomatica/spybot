@@ -25,4 +25,10 @@
         android:scrollbarStyle="insideOverlay">
     </EditText>
 
+    <Button
+        android:id="@+id/led1_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="LED1" />
+
 </LinearLayout>

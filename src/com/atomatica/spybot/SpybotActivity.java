@@ -9,9 +9,12 @@ import java.util.Arrays;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
@@ -20,28 +23,38 @@ import android_serialport_api.SerialPort;
 public class SpybotActivity extends Activity {
 	private SpybotApplication mApplication;
 	private SerialPort mSerialPort;
+    private InputStream mInputStream;
 	private OutputStream mOutputStream;
-	private InputStream mInputStream;
-	private ReadThread mReadThread;
+	private ReceivingThread mReceivingThread;
     private SendingThread mSendingThread;
-    private byte[] mBuffer;
 	
     private EditText mReception;
     
-	private class ReadThread extends Thread {
+    byte[] mBuffer;
+    byte maintain = 0;
+    byte led1 = 10;
+    byte led2 = 11;
+    byte led3 = 12;
+    byte servo = 20;
+    byte rightM = 21;
+    byte leftM = 22;
+    
+	private class ReceivingThread extends Thread {
 		@Override
 		public void run() {
 			super.run();
 			while(!isInterrupted()) {
-				int size;
 				try {
 					byte[] buffer = new byte[64];
-					if (mInputStream == null) return;
-					size = mInputStream.read(buffer);
+					if (mInputStream == null) {
+					    return;
+					}
+					int size = mInputStream.read(buffer);
 					if (size > 0) {
 						onDataReceived(buffer, size);
 					}
-				} catch (IOException e) {
+				}
+				catch (IOException e) {
 					e.printStackTrace();
 					return;
 				}
@@ -52,8 +65,8 @@ public class SpybotActivity extends Activity {
     private class SendingThread extends Thread {
         @Override
         public void run() {
-            while (!isInterrupted()) {
-                /*try {
+            /*while (!isInterrupted()) {
+                try {
                     if (mOutputStream != null) {
                         mOutputStream.write(mBuffer);
                     }
@@ -64,8 +77,8 @@ public class SpybotActivity extends Activity {
                 catch (IOException e) {
                     e.printStackTrace();
                     return;
-                }*/
-            }
+                }
+            }*/
         }
     }
 
@@ -88,14 +101,19 @@ public class SpybotActivity extends Activity {
         setTitle("Spybot Client");
         
         mApplication = (SpybotApplication)getApplication();
+        
+        mBuffer = new byte[2];
+        mBuffer[0] = maintain;
+        mBuffer[1] = maintain;
+        
         try {
             mSerialPort = mApplication.getSerialPort();
             mOutputStream = mSerialPort.getOutputStream();
             mInputStream = mSerialPort.getInputStream();
 
             // create a receiving thread
-            mReadThread = new ReadThread();
-            mReadThread.start();
+            mReceivingThread = new ReceivingThread();
+            mReceivingThread.start();
             
             // create a sending thread
             mSendingThread = new SendingThread();
@@ -114,10 +132,8 @@ public class SpybotActivity extends Activity {
             DisplayError(R.string.error_configuration);
         }
         
-        mBuffer = new byte[1024];
-        Arrays.fill(mBuffer, (byte) 0x55);
-        
         mReception = (EditText)findViewById(R.id.EditTextReception);
+        
         EditText Emission = (EditText)findViewById(R.id.EditTextEmission);
         Emission.setOnEditorActionListener(new OnEditorActionListener() {
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -136,6 +152,28 @@ public class SpybotActivity extends Activity {
                 return false;
             }
         });
+        
+        final Button led1Button = (Button)findViewById(R.id.led1_button);
+        led1Button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                mBuffer[0] = led2;
+                mBuffer[1] = (byte)0xaa;
+                for (int i = 0; i < 100; i++) {
+                    try {
+                        if (mOutputStream != null) {
+                            mOutputStream.write(mBuffer);
+                        }
+                        else {
+                            return;
+                        }
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        });
     }
     
     protected void onDataReceived(final byte[] buffer, final int size) {
@@ -150,8 +188,8 @@ public class SpybotActivity extends Activity {
     
 	@Override
 	protected void onDestroy() {
-		if (mReadThread != null) {
-			mReadThread.interrupt();
+		if (mReceivingThread != null) {
+			mReceivingThread.interrupt();
 		}
 
         if (mSendingThread != null) {

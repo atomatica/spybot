@@ -28,6 +28,7 @@ public class SpybotApplication extends android.app.Application {
 			// open serial port
 			mSerialPort = new SerialPort(new File(path), baudrate, 0);
 		}
+		
 		return mSerialPort;
 	}
 

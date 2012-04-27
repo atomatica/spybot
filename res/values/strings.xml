@@ -2,8 +2,7 @@
 <resources>
     <string name="app_name">Spybot</string>
     <string name="about_msg">
-Spybot v1.0\n
-Based on Serial Port API sample v1.1\n
+        Spybot v1.0\nBased on Serial Port API sample v1.1\n
 	</string>
     <string name="error_configuration">Please configure your serial port first.</string>
     <string name="error_security">You do not have read/write permission to the serial port.</string>
