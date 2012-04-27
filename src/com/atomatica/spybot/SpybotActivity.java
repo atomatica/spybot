@@ -21,8 +21,8 @@ public class SpybotActivity extends Activity {
     public static final byte led2 = 11;
     public static final byte led3 = 12;
     public static final byte servo = 20;
-    public static final byte rightM = 21;
-    public static final byte leftM = 22;
+    public static final byte rightMotor = 21;
+    public static final byte leftMotor = 22;
     
     private static final String TAG = "SpybotActivity";
     
@@ -60,24 +60,30 @@ public class SpybotActivity extends Activity {
 		}
 	}
 	
-    private class SerialSendingThread extends Thread {
-        @Override
-        public void run() {
-            while (!isInterrupted()) {
-                if (mSerialOutput != null) {
-                    try {
-                        mSerialOutput.write(maintain);
-                        mSerialOutput.write((byte)0x0);
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    
+	private class SerialSendingThread extends Thread {
+	    @Override
+	    public void run() {
+	        while (!isInterrupted()) {
+	            if (mSerialOutput != null) {
+	                try {
+	                    mSerialOutput.write(maintain);
+	                    mSerialOutput.write((byte)0x0);
+	                }
+	                catch (IOException e) {
+	                    e.printStackTrace();
+	                    return;
+	                }
+	            }
+	            
+	            try {
+	                Thread.sleep(500);
+	            }
+	            catch (InterruptedException e) {
+	            }
+	        }
+	    }
+	}
+	
     private class NetworkThread extends Thread {
         private Socket mNetworkPort;
         private ObjectInputStream mNetworkInput;
@@ -93,27 +99,53 @@ public class SpybotActivity extends Activity {
                 String message = "";
                 do {
                     if (mNetworkInput != null && mNetworkOutput != null) {
-                        mNetworkOutput.writeObject("KEEPALIVE");
-                        mNetworkOutput.flush();
                         try {
                             message = (String)mNetworkInput.readObject();
-                            Log.e(TAG, "Got message: " + message);
-                            if (message.equals("LED1")) {
+                            String[] tokens = message.split("\\s");
+                            
+                            if (tokens[0].equals("LED1")) {
                                 mSerialOutput.write(led1);
-                                mSerialOutput.write((byte)0xaa);
+                                mSerialOutput.write(Byte.parseByte(tokens[1]));
                             }
 
-                            else if (message.equals("LED2")) {
+                            else if (tokens[0].equals("LED2")) {
                                 mSerialOutput.write(led2);
-                                mSerialOutput.write((byte)0xaa);
+                                mSerialOutput.write(Byte.parseByte(tokens[1]));
                             }
+
+                            else if (tokens[0].equals("LED3")) {
+                                mSerialOutput.write(led3);
+                                mSerialOutput.write(Byte.parseByte(tokens[1]));
+                            }
+                            
+                            else if (tokens[0].equals("SERVO")) {
+                                mSerialOutput.write(servo);
+                                mSerialOutput.write(Byte.parseByte(tokens[1]));
+                            }
+                            
+                            else if (tokens[0].equals("LEFTMOTOR")) {
+                                mSerialOutput.write(leftMotor);
+                                mSerialOutput.write(Byte.parseByte(tokens[1]));
+                            }
+
+                            else if (tokens[0].equals("RIGHTMOTOR")) {
+                                mSerialOutput.write(rightMotor);
+                                mSerialOutput.write(Byte.parseByte(tokens[1]));
+                            }
+                            
+                            else if (tokens[0].equals("KEEPALIVE")) {
+                                mSerialOutput.write(maintain);
+                                mSerialOutput.write((byte)0x0);
+                            }
+                            
+                            mNetworkOutput.writeObject("ACK");
+                            mNetworkOutput.flush();
                         }
                         
                         catch (ClassNotFoundException e) {
                             e.printStackTrace();
                         }
                     }
-                    Thread.sleep(10);
                 } while (!message.equals("TERMINATE"));
             }
 
@@ -123,9 +155,6 @@ public class SpybotActivity extends Activity {
             }
 
             catch (IOException e) {
-                e.printStackTrace();
-                
-            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             
@@ -229,24 +258,14 @@ public class SpybotActivity extends Activity {
         });
     }
     
-    protected void onNetworkDataReceived(final String message) {
-        runOnUiThread(new Runnable() {
-            public void run() {
-                if (mNetworkText != null) {
-                    mNetworkText.setText(message);
-                }
-            }
-        });
-    }
-    
 	@Override
 	protected void onDestroy() {
 	    // close serial connection
 		if (mSerialReceivingThread != null) {
 			mSerialReceivingThread.interrupt();
 		}
-
-        if (mSerialSendingThread != null) {
+		
+		if (mSerialSendingThread != null) {
             mSerialSendingThread.interrupt();
         }
         
