@@ -181,17 +181,17 @@ public class SpybotActivity extends Activity {
         }
     }
 
-	private void DisplayError(int resourceId) {
-		AlertDialog.Builder b = new AlertDialog.Builder(this);
-		b.setTitle("Error");
-		b.setMessage(resourceId);
-		b.setPositiveButton("OK", new OnClickListener() {
-			public void onClick(DialogInterface dialog, int which) {
-				SpybotActivity.this.finish();
-			}
-		});
-		b.show();
-	}
+    private void DisplayError(int resourceId) {
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setTitle("Error");
+        b.setMessage(resourceId);
+        b.setPositiveButton("OK", new OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                SpybotActivity.this.finish();
+            }
+        });
+        b.show();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -261,21 +261,21 @@ public class SpybotActivity extends Activity {
             }
         });
     }
-    
-	@Override
-	protected void onDestroy() {
-	    // close serial connection
-		if (mSerialReceivingThread != null) {
-			mSerialReceivingThread.interrupt();
-		}
-		
-		if (mSerialSendingThread != null) {
+
+    @Override
+    protected void onDestroy() {
+        // close serial connection
+        if (mSerialReceivingThread != null) {
+            mSerialReceivingThread.interrupt();
+        }
+
+        if (mSerialSendingThread != null) {
             mSerialSendingThread.interrupt();
         }
-        
-		mApplication.closeSerialPort();
-		mSerialPort = null;
-		
-		super.onDestroy();
-	}
+
+        mApplication.closeSerialPort();
+        mSerialPort = null;
+
+        super.onDestroy();
+    }
 }
