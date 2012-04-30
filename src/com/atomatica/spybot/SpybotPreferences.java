@@ -15,36 +15,33 @@ public class SpybotPreferences extends PreferenceActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mApplication = (SpybotApplication) getApplication();
+        mApplication = (SpybotApplication)getApplication();
         mSerialPortFinder = mApplication.mSerialPortFinder;
 
         addPreferencesFromResource(R.xml.preferences);
 
         // Devices
-        final ListPreference devices = (ListPreference) findPreference("DEVICE");
-        String[] entries = mSerialPortFinder.getAllDevices();
-        String[] entryValues = mSerialPortFinder.getAllDevicesPath();
+        final ListPreference devices = (ListPreference)findPreference("DEVICE");
+        String entries[] = mSerialPortFinder.getAllDevices();
+        String entryValues[] = mSerialPortFinder.getAllDevicesPath();
         devices.setEntries(entries);
         devices.setEntryValues(entryValues);
         devices.setSummary(devices.getValue());
         devices.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
-            public boolean onPreferenceChange(Preference preference,
-                    Object newValue) {
-                preference.setSummary((String) newValue);
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                preference.setSummary((String)newValue);
                 return true;
             }
         });
 
         // Baud rates
-        final ListPreference baudrates = (ListPreference) findPreference("BAUDRATE");
+        final ListPreference baudrates = (ListPreference)findPreference("BAUDRATE");
         baudrates.setSummary(baudrates.getValue());
-        baudrates
-                .setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
-                    public boolean onPreferenceChange(Preference preference,
-                            Object newValue) {
-                        preference.setSummary((String) newValue);
-                        return true;
-                    }
-                });
+        baudrates.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                preference.setSummary((String)newValue);
+                return true;
+            }
+        });
     }
 }
