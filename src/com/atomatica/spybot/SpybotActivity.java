@@ -6,16 +6,20 @@ import java.security.InvalidParameterException;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Service;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android_serialport_api.SerialPort;
+import android.app.Service;
 
-public class SpybotActivity extends Activity {
+public class SpybotActivity extends Service {
     public static final byte maintain = 0;
     public static final byte led1 = 10;
     public static final byte led2 = 11;
@@ -42,6 +46,8 @@ public class SpybotActivity extends Activity {
     private class SerialReceivingThread extends Thread {
         @Override
         public void run() {
+        	Log.d(TAG, "Serial receiving thread started");
+        	
             while(!isInterrupted()) {
                 if (mSerialInput != null) {
                     try {
@@ -63,6 +69,8 @@ public class SpybotActivity extends Activity {
     private class SerialSendingThread extends Thread {
         @Override
         public void run() {
+        	Log.d(TAG, "Serial sending thread started");
+        	
             while (!isInterrupted()) {
                 if (mSerialOutput != null) {
                     try {
@@ -91,6 +99,8 @@ public class SpybotActivity extends Activity {
         
         @Override
         public void run() {
+        	Log.d(TAG, "Network thread started");
+        	
             try {
                 mNetworkPort = new Socket(InetAddress.getByName("atomatica.com"), 9103);
                 mNetworkOutput = new ObjectOutputStream(mNetworkPort.getOutputStream());
@@ -181,8 +191,10 @@ public class SpybotActivity extends Activity {
         }
     }
 
+    
     private void DisplayError(int resourceId) {
-        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        
+    /*    AlertDialog.Builder b = new AlertDialog.Builder(this);
         b.setTitle("Error");
         b.setMessage(resourceId);
         b.setPositiveButton("OK", new OnClickListener() {
@@ -190,15 +202,23 @@ public class SpybotActivity extends Activity {
                 SpybotActivity.this.finish();
             }
         });
-        b.show();
+        b.show(); */
     }
-
+    
+    
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.spybot);
-        setTitle("Spybot Client");
+	public void onStart(Intent intent, int startid) {
+	}
+
+    
+    @Override
+    public void onCreate() {
+        //setContentView(R.layout.spybot);
+        //setTitle("Spybot Client");
         
+      //Erik's log
+    	Log.d("erik", "erik: SBA: oncreate");
+    	
         mApplication = (SpybotApplication)getApplication();
         
         // setup serial connection
@@ -218,21 +238,25 @@ public class SpybotActivity extends Activity {
         
         catch (SecurityException e) {
             DisplayError(R.string.error_security);
+
+            Log.e(TAG, "Security error");
         }
 
         catch (InvalidParameterException e) {
             DisplayError(R.string.error_configuration);
+            Log.e(TAG, "Configuration error");
         }
         
         catch (IOException e) {
             DisplayError(R.string.error_unknown);
+            Log.e(TAG, "IO Error");
         }
 
         // setup network connection
         mNetworkThread = new NetworkThread();
         mNetworkThread.start();
         
-        mSerialText = (TextView)findViewById(R.id.serial_text);
+      /*  mSerialText = (TextView)findViewById(R.id.serial_text);
         mNetworkText = (TextView)findViewById(R.id.network_text);
         
         final Button led1Button = (Button)findViewById(R.id.led1_button);
@@ -250,20 +274,24 @@ public class SpybotActivity extends Activity {
                 }
             }
         });
+        
+        */
     }
     
     protected void onSerialDataReceived(final byte[] buffer, final int size) {
-        runOnUiThread(new Runnable() {
+    	//Erik's log
+    	Log.d("erik", "erik: SBA: on serial data received");
+        /*runOnUiThread(new Runnable() {
             public void run() {
                 if (mSerialText != null) {
                     mSerialText.setText(new String(buffer, 0, size));
                 }
             }
-        });
+        }); */
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         // close serial connection
         if (mSerialReceivingThread != null) {
             mSerialReceivingThread.interrupt();
@@ -277,5 +305,13 @@ public class SpybotActivity extends Activity {
         mSerialPort = null;
 
         super.onDestroy();
+        
+        Log.d("erik", "erik: destroyed");
     }
+
+	@Override
+	public IBinder onBind(Intent arg0) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
