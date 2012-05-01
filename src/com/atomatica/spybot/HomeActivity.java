@@ -14,13 +14,21 @@ public class HomeActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.home);
 
-        final Button spybotButton = (Button)findViewById(R.id.spybot_button);
-        spybotButton.setOnClickListener(new View.OnClickListener() {
+        final Button controllerButton = (Button)findViewById(R.id.controller_button);
+        controllerButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                startService(new Intent(HomeActivity.this, SpybotActivity.class));
+                startActivity(new Intent(HomeActivity.this, ControllerActivity.class));
             }
         });
 
+        final Button monitorButton = (Button)findViewById(R.id.monitor_button);
+        monitorButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                startService(new Intent(HomeActivity.this, SpybotService.class));
+                startActivity(new Intent(HomeActivity.this, MonitorActivity.class));
+            }
+        });
+        
         final Button preferencesButton = (Button)findViewById(R.id.preferences_button);
         preferencesButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -41,7 +49,7 @@ public class HomeActivity extends Activity {
         final Button quitButton = (Button)findViewById(R.id.quit_button);
         quitButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	stopService(new Intent(HomeActivity.this, SpybotActivity.class));
+            	stopService(new Intent(HomeActivity.this, SpybotService.class));
                 HomeActivity.this.finish();
             }
         });

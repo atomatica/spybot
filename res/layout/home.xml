@@ -8,11 +8,18 @@
     android:orientation="vertical" >
 
     <Button
-        android:id="@+id/spybot_button"
+        android:id="@+id/controller_button"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="Start Spybot" />
+        android:text="Start Local Control" />
+
+    <Button
+        android:id="@+id/monitor_button"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Start Remote Control" />
 
     <Button
         android:id="@+id/preferences_button"

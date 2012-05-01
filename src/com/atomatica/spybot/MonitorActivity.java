@@ -15,7 +15,7 @@ import android.widget.TextView;
 import android.util.Log;
 import android_serialport_api.SerialPort;
 
-public class SpybotActivity extends Activity {
+public class MonitorActivity extends Activity {
     public static final byte maintain = 0;
     public static final byte led1 = 10;
     public static final byte led2 = 11;
@@ -194,7 +194,7 @@ public class SpybotActivity extends Activity {
         b.setMessage(resourceId);
         b.setPositiveButton("OK", new OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                SpybotActivity.this.finish();
+                MonitorActivity.this.finish();
             }
         });
         b.show();
@@ -202,7 +202,7 @@ public class SpybotActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        setContentView(R.layout.spybot);
+        setContentView(R.layout.monitor);
         setTitle("Spybot Client");
     	
         mApplication = (SpybotApplication)getApplication();
