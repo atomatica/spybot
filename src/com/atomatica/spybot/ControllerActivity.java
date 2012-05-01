@@ -89,7 +89,7 @@ public class ControllerActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super(savedInstanceState);
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.controller);
         setTitle("Spybot Controller");
     	

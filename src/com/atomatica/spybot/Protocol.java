@@ -1,6 +1,7 @@
 package com.atomatica.spybot;
 
 public class Protocol {
+    public static final String protocolHeader = "SPYBOTCCP/1.0";
     public static final byte maintain = 0;
     public static final byte led1 = 10;
     public static final byte led2 = 11;

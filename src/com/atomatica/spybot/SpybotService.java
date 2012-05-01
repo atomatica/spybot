@@ -8,62 +8,36 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 import android_serialport_api.SerialPort;
 
 public class SpybotService extends Service {
-    public static final byte maintain = 0;
-    public static final byte led1 = 10;
-    public static final byte led2 = 11;
-    public static final byte led3 = 12;
-    public static final byte servo = 20;
-    public static final byte rightMotor = 21;
-    public static final byte leftMotor = 22;
+    protected static final String TAG = "Spybot Service";
     
-    private static final String TAG = "SpybotService";
-    
-    private SpybotApplication mApplication;
+    protected SpybotApplication mApplication;
 
-    private SerialPort mSerialPort;
-    private InputStream mSerialInput;
-    private OutputStream mSerialOutput;
-    private SerialReceivingThread mSerialReceivingThread;
-    private SerialSendingThread mSerialSendingThread;
-
-    private NetworkThread mNetworkThread;
+    protected SerialThread mSerialThread;
+    protected SerialPort mSerialPort;
+    protected InputStream mSerialInput;
+    protected OutputStream mSerialOutput;
     
-    private class SerialReceivingThread extends Thread {
+    protected NetworkThread mNetworkThread;
+    protected Socket mNetworkPort;
+    protected BufferedReader mNetworkInput;
+    protected PrintWriter mNetworkOutput;
+
+    protected SerialSendingThread mSerialSendingThread;
+    
+    class SerialSendingThread extends Thread {
         @Override
         public void run() {
-        	Log.d(TAG, "Serial receiving thread started");
-        	
-            while(!isInterrupted()) {
-                if (mSerialInput != null) {
-                    try {
-                        byte[] buffer = new byte[64];
-                        int size = mSerialInput.read(buffer);
-                        if (size > 0) {
-                            onSerialDataReceived(buffer, size);
-                        }
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    private class SerialSendingThread extends Thread {
-        @Override
-        public void run() {
-        	Log.d(TAG, "Serial sending thread started");
-        	
+            Log.d(TAG, "Serial sending thread running");
+            
             while (!isInterrupted()) {
                 if (mSerialOutput != null) {
                     try {
-                        mSerialOutput.write(maintain);
-                        mSerialOutput.write((byte)0x0);
+                        mSerialOutput.write(Protocol.maintain);
+                        mSerialOutput.write((byte)0);
                     }
                     catch (IOException e) {
                         e.printStackTrace();
@@ -79,107 +53,158 @@ public class SpybotService extends Service {
             }
         }
     }
-
-    private class NetworkThread extends Thread {
-        private Socket mNetworkPort;
-        private BufferedReader mNetworkInput;
-        private PrintWriter mNetworkOutput;
-        
+    
+    class SerialThread extends Thread {
         @Override
         public void run() {
-        	Log.d(TAG, "Network thread started");
+        	Log.d(TAG, "Serial thread running");
         	
+        	try {
+        	    while(!isInterrupted()) {
+                    byte[] buffer = new byte[64];
+                    int size = mSerialInput.read(buffer);
+                    if (size > 0) {
+                        String message = new String(buffer, 0, size);
+                        
+                        Log.d(TAG, "arduino - " + message);
+                        
+                        // TODO: update status on Monitor Activity
+                        /*runOnUiThread(new Runnable() {
+                            public void run() {
+                                if (mSerialText != null) {
+                                    mSerialText.setText(message);
+                                }
+                            }
+                        });*/
+                    }
+                }
+        	}
+
+            catch (EOFException e) {
+                Log.d(TAG, "Connection interrupted with Arduino");
+            }
+        	
+            catch (IOException e) {
+                Log.e(TAG, "Error reading from serial port");
+            }
+        	
+        	finally {
+                mApplication.closeSerialPort();
+                Log.d(TAG, "Closing serial port");
+        	}
+        }
+    }
+
+    class NetworkThread extends Thread {
+        @Override
+        public void run() {
+        	Log.d(TAG, "Network thread running");
+            
             try {
-                mNetworkPort = new Socket(InetAddress.getByName("atomatica.com"), 9103);
+                mNetworkPort = new Socket(InetAddress.getByName(
+                        mApplication.getServerName()), mApplication.getServerPortNumber());
+                Log.d(TAG, "Connected to server");
+            }
+            
+            catch (IOException e) {
+                Log.e(TAG, "Could not connect to server " + mApplication.getServerName());
+                return;
+            }
+
+            try {
                 mNetworkInput = new BufferedReader(new InputStreamReader(mNetworkPort.getInputStream()));
                 mNetworkOutput = new PrintWriter(mNetworkPort.getOutputStream(), true);
-                String message = "";
-                do {
-                    if (mNetworkInput != null && mNetworkOutput != null) {
-                        message = mNetworkInput.readLine();
-                        String[] tokens = message.split("\\s");
+                Log.d(TAG, "Got server I/O streams");
+            }
+
+            catch (IOException e) {
+                Log.e(TAG, "Error getting I/O streams");
+            }
+            
+            try {
+                mNetworkOutput.println("ANNOUNCE " + mApplication.getSpybotName() + " " + mApplication.getSpybotPassphrase());
+                
+                while (!isInterrupted()) {
+                    String message = mNetworkInput.readLine();
+                    if (message == null) {
+                        Log.d(TAG, "Connection interrupted with server");
+                        break;
+                    }
+
+                    Log.d(TAG, "server - " + message);
+                    
+                    String tokens[] = message.split("\\s");
+                    if (tokens[0].equals(Protocol.protocolHeader)) {
+                        // TODO: parse response code
+                    }
+                    
+                    else {
                         byte value = 0;
                         if (tokens.length == 2) {
                             value = (byte)Integer.parseInt(tokens[1]);
                         }
-
+                        
                         if (tokens[0].equals("LED1")) {
-                            mSerialOutput.write(led1);
+                            mSerialOutput.write(Protocol.led1);
                             mSerialOutput.write(value);
                         }
 
                         else if (tokens[0].equals("LED2")) {
-                            mSerialOutput.write(led2);
+                            mSerialOutput.write(Protocol.led2);
                             mSerialOutput.write(value);
                         }
 
                         else if (tokens[0].equals("LED3")) {
-                            mSerialOutput.write(led3);
+                            mSerialOutput.write(Protocol.led3);
                             mSerialOutput.write(value);
                         }
 
                         else if (tokens[0].equals("SERVO")) {
-                            mSerialOutput.write(servo);
+                            mSerialOutput.write(Protocol.servo);
                             mSerialOutput.write(value);
                         }
 
                         else if (tokens[0].equals("LEFTMOTOR")) {
-                            mSerialOutput.write(leftMotor);
+                            mSerialOutput.write(Protocol.leftMotor);
                             mSerialOutput.write(value);
                         }
 
                         else if (tokens[0].equals("RIGHTMOTOR")) {
-                            mSerialOutput.write(rightMotor);
+                            mSerialOutput.write(Protocol.rightMotor);
                             mSerialOutput.write(value);
                         }
 
-                        else if (tokens[0].equals("KEEPALIVE")) {
-                            mSerialOutput.write(maintain);
-                            mSerialOutput.write((byte)0x0);
+                        else if (tokens[0].equals("MAINTAIN")) {
+                            mSerialOutput.write(Protocol.maintain);
+                            mSerialOutput.write(value);
                         }
-
-                        mNetworkOutput.println("ACK");
                     }
-                } while (!message.equals("TERMINATE"));
+                }
             }
 
-            // server closed connection
             catch (EOFException e) {
-                e.printStackTrace();
+                Log.d(TAG, "Connection with server interrupted");
             }
 
             catch (IOException e) {
-                e.printStackTrace();
+                Log.e(TAG, "Error communicating with server");
             }
             
             finally {
-                closeConnection();
-            }
-        }
-        
-        private void closeConnection() {
-            // close network connection
-            try {
-                mNetworkInput.close();
-                mNetworkOutput.close();
-                mNetworkPort.close();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-                return;
+                try {
+                    mNetworkInput.close();
+                    mNetworkOutput.close();
+                    mNetworkPort.close();
+                    Log.d(TAG, "Closed network connection");
+                }
+                
+                catch (IOException e) {
+                    Log.e(TAG, "Error closing network connection");
+                }
             }
         }
     }
-
     
-    private void DisplayError(int resourceId) {
-    }
-    
-    
-    @Override
-	public void onStart(Intent intent, int startid) {
-	}
-
     @Override
     public void onCreate() {
         mApplication = (SpybotApplication)getApplication();
@@ -187,68 +212,62 @@ public class SpybotService extends Service {
         // setup serial connection
         try {
             mSerialPort = mApplication.getSerialPort();
+            Log.d(TAG, "Opened serial port");
+            
             mSerialInput = mSerialPort.getInputStream();
             mSerialOutput = mSerialPort.getOutputStream();
-
-            // create a serial receiving thread
-            mSerialReceivingThread = new SerialReceivingThread();
-            mSerialReceivingThread.start();
-            
-            // create a serial sending thread
-            mSerialSendingThread = new SerialSendingThread();
-            mSerialSendingThread.start();
+            Log.d(TAG, "Got serial port I/O streams");
         }
         
         catch (SecurityException e) {
-            DisplayError(R.string.error_security);
-            Log.e(TAG, "Security error");
+            Log.e(TAG, "Security error while opening serial port");
         }
 
         catch (InvalidParameterException e) {
-            DisplayError(R.string.error_configuration);
-            Log.e(TAG, "Configuration error");
+            Log.e(TAG, "Configuration error while opening serial port");
         }
         
         catch (IOException e) {
-            DisplayError(R.string.error_unknown);
-            Log.e(TAG, "IO Error");
+            Log.e(TAG, "IO error while opening serial port");
         }
-
+        mSerialSendingThread = new SerialSendingThread();
+        mSerialSendingThread.start();
+        
         // setup network connection
         mNetworkThread = new NetworkThread();
         mNetworkThread.start();
     }
-    
-    protected void onSerialDataReceived(final byte[] buffer, final int size) {
-        /*runOnUiThread(new Runnable() {
-            public void run() {
-                if (mSerialText != null) {
-                    mSerialText.setText(new String(buffer, 0, size));
-                }
-            }
-        });*/
+
+    @Override
+    public int onStartCommand(Intent intent, int flagsint, int startid) {
+        Toast.makeText(this, "Starting Spybot Service", Toast.LENGTH_SHORT).show();
+        return START_NOT_STICKY;
     }
 
     @Override
+    public IBinder onBind(Intent arg0) {
+        // do not allow binding
+        return null;
+    }
+    
+    @Override
     public void onDestroy() {
-        // close serial connection
-        if (mSerialReceivingThread != null) {
-            mSerialReceivingThread.interrupt();
+        Toast.makeText(this, "Stopping Spybot Service", Toast.LENGTH_SHORT).show();
+        if (mSerialThread != null) {
+            mSerialThread.interrupt();
         }
 
-        if (mSerialSendingThread != null) {
-            mSerialSendingThread.interrupt();
+        if (mNetworkPort != null) {
+            try {
+                mNetworkPort.shutdownInput();
+            }
+            catch (IOException e) {
+            }
         }
-
-        mApplication.closeSerialPort();
-        mSerialPort = null;
+        
+        mSerialThread = null;
+        mNetworkThread = null;
 
         super.onDestroy();
     }
-
-	@Override
-	public IBinder onBind(Intent arg0) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

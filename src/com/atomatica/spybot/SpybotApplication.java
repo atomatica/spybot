@@ -2,6 +2,7 @@ package com.atomatica.spybot;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.Socket;
 import java.security.InvalidParameterException;
 
 import android.preference.PreferenceManager;
@@ -11,8 +12,33 @@ import android_serialport_api.SerialPortFinder;
 
 public class SpybotApplication extends android.app.Application {
     public SerialPortFinder mSerialPortFinder = new SerialPortFinder();
+    
+    private String mSpybotName;
+    private String mSpybotPassphrase;
+    private String mServerName;
+    private int mServerPortNumber;
     private SerialPort mSerialPort = null;
+    
+    public String getSpybotName() {
+        mSpybotName = "spybotone";
+        return mSpybotName;
+    }
+    
+    public String getSpybotPassphrase() {
+        mSpybotPassphrase = "teamspybot";
+        return mSpybotPassphrase;
+    }
+    
+    public String getServerName() {
+        mServerName = "atomatica.com";
+        return mServerName;
+    }
 
+    public int getServerPortNumber() {
+        mServerPortNumber = 9103;
+        return mServerPortNumber;
+    }
+    
     public SerialPort getSerialPort() throws SecurityException, IOException,
             InvalidParameterException {
         if (mSerialPort == null) {
