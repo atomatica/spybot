@@ -16,15 +16,7 @@ import android.util.Log;
 import android_serialport_api.SerialPort;
 
 public class ControllerActivity extends Activity {
-    public static final byte maintain = 0;
-    public static final byte led1 = 10;
-    public static final byte led2 = 11;
-    public static final byte led3 = 12;
-    public static final byte servo = 20;
-    public static final byte rightMotor = 21;
-    public static final byte leftMotor = 22;
-    
-    private static final String TAG = "SpybotActivity";
+    private static final String TAG = "Spybot Controller";
     
     private SpybotApplication mApplication;
 
@@ -33,11 +25,6 @@ public class ControllerActivity extends Activity {
     private OutputStream mSerialOutput;
     private SerialReceivingThread mSerialReceivingThread;
     private SerialSendingThread mSerialSendingThread;
-
-    private NetworkThread mNetworkThread;
-    
-    private TextView mSerialText;
-    private TextView mNetworkText;
     
     private class SerialReceivingThread extends Thread {
         @Override
@@ -70,8 +57,8 @@ public class ControllerActivity extends Activity {
             while (!isInterrupted()) {
                 if (mSerialOutput != null) {
                     try {
-                        mSerialOutput.write(maintain);
-                        mSerialOutput.write((byte)0x0);
+                        mSerialOutput.write(Protocol.maintain);
+                        mSerialOutput.write((byte)0);
                     }
                     catch (IOException e) {
                         e.printStackTrace();
@@ -87,106 +74,6 @@ public class ControllerActivity extends Activity {
             }
         }
     }
-
-    private class NetworkThread extends Thread {
-        private Socket mNetworkPort;
-        private ObjectInputStream mNetworkInput;
-        private ObjectOutputStream mNetworkOutput;
-        
-        @Override
-        public void run() {
-        	Log.d(TAG, "Network thread started");
-        	
-            try {
-                mNetworkPort = new Socket(InetAddress.getByName("atomatica.com"), 9103);
-                mNetworkOutput = new ObjectOutputStream(mNetworkPort.getOutputStream());
-                mNetworkOutput.flush();
-                mNetworkInput = new ObjectInputStream(mNetworkPort.getInputStream());
-                String message = "";
-                do {
-                    if (mNetworkInput != null && mNetworkOutput != null) {
-                        try {
-                            message = (String)mNetworkInput.readObject();
-                            String[] tokens = message.split("\\s");
-                            byte value = 0;
-                            if (tokens.length == 2) {
-                                value = (byte)Integer.parseInt(tokens[1]);
-                            }
-                            
-                            if (tokens[0].equals("LED1")) {
-                                mSerialOutput.write(led1);
-                                mSerialOutput.write(value);
-                            }
-
-                            else if (tokens[0].equals("LED2")) {
-                                mSerialOutput.write(led2);
-                                mSerialOutput.write(value);
-                            }
-
-                            else if (tokens[0].equals("LED3")) {
-                                mSerialOutput.write(led3);
-                                mSerialOutput.write(value);
-                            }
-                            
-                            else if (tokens[0].equals("SERVO")) {
-                                mSerialOutput.write(servo);
-                                mSerialOutput.write(value);
-                            }
-                            
-                            else if (tokens[0].equals("LEFTMOTOR")) {
-                                mSerialOutput.write(leftMotor);
-                                mSerialOutput.write(value);
-                            }
-
-                            else if (tokens[0].equals("RIGHTMOTOR")) {
-                                mSerialOutput.write(rightMotor);
-                                mSerialOutput.write(value);
-                            }
-                            
-                            else if (tokens[0].equals("KEEPALIVE")) {
-                                mSerialOutput.write(maintain);
-                                mSerialOutput.write((byte)0x0);
-                            }
-                            
-                            mNetworkOutput.writeObject("ACK");
-                            mNetworkOutput.flush();
-                        }
-                        
-                        catch (ClassNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                } while (!message.equals("TERMINATE"));
-            }
-
-            // server closed connection
-            catch (EOFException e) {
-                e.printStackTrace();
-            }
-
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            
-            finally {
-                closeConnection();
-            }
-        }
-        
-        private void closeConnection() {
-            // close network connection
-            try {
-                mNetworkInput.close();
-                mNetworkOutput.close();
-                mNetworkPort.close();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-                return;
-            }
-        }
-    }
-
     
     private void DisplayError(int resourceId) {
         AlertDialog.Builder b = new AlertDialog.Builder(this);
@@ -202,6 +89,7 @@ public class ControllerActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        super(savedInstanceState);
         setContentView(R.layout.controller);
         setTitle("Spybot Controller");
     	
@@ -236,21 +124,88 @@ public class ControllerActivity extends Activity {
             DisplayError(R.string.error_unknown);
             Log.e(TAG, "IO Error");
         }
-
-        // setup network connection
-        mNetworkThread = new NetworkThread();
-        mNetworkThread.start();
         
-        mSerialText = (TextView)findViewById(R.id.serial_text);
-        mNetworkText = (TextView)findViewById(R.id.network_text);
-        
-        final Button led1Button = (Button)findViewById(R.id.led1_button);
-        led1Button.setOnClickListener(new View.OnClickListener() {
+        final Button forwardButton = (Button)findViewById(R.id.forward_button);
+        forwardButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (mSerialOutput != null) {
                     try {
-                        mSerialOutput.write(led1);
-                        mSerialOutput.write((byte)0xaa);
+                        mSerialOutput.write(Protocol.leftMotor);
+                        mSerialOutput.write((byte)0);
+                        mSerialOutput.write(Protocol.rightMotor);
+                        mSerialOutput.write((byte)0);
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        });
+        
+        final Button reverseButton = (Button)findViewById(R.id.reverse_button);
+        reverseButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (mSerialOutput != null) {
+                    try {
+                        mSerialOutput.write(Protocol.leftMotor);
+                        mSerialOutput.write((byte)255);
+                        mSerialOutput.write(Protocol.rightMotor);
+                        mSerialOutput.write((byte)255);
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        });
+        
+        final Button leftButton = (Button)findViewById(R.id.left_button);
+        leftButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (mSerialOutput != null) {
+                    try {
+                        mSerialOutput.write(Protocol.leftMotor);
+                        mSerialOutput.write((byte)255);
+                        mSerialOutput.write(Protocol.rightMotor);
+                        mSerialOutput.write((byte)0);
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        });
+        
+        final Button rightButton = (Button)findViewById(R.id.right_button);
+        rightButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (mSerialOutput != null) {
+                    try {
+                        mSerialOutput.write(Protocol.leftMotor);
+                        mSerialOutput.write((byte)0);
+                        mSerialOutput.write(Protocol.rightMotor);
+                        mSerialOutput.write((byte)255);
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        });
+        
+        final Button stopButton = (Button)findViewById(R.id.stop_button);
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (mSerialOutput != null) {
+                    try {
+                        mSerialOutput.write(Protocol.leftMotor);
+                        mSerialOutput.write((byte)128);
+                        mSerialOutput.write(Protocol.rightMotor);
+                        mSerialOutput.write((byte)128);
                     }
                     catch (IOException e) {
                         e.printStackTrace();
@@ -264,9 +219,6 @@ public class ControllerActivity extends Activity {
     protected void onSerialDataReceived(final byte[] buffer, final int size) {
         runOnUiThread(new Runnable() {
             public void run() {
-                if (mSerialText != null) {
-                    mSerialText.setText(new String(buffer, 0, size));
-                }
             }
         });
     }

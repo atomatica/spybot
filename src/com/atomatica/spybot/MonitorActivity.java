@@ -24,7 +24,7 @@ public class MonitorActivity extends Activity {
     public static final byte rightMotor = 21;
     public static final byte leftMotor = 22;
     
-    private static final String TAG = "SpybotActivity";
+    private static final String TAG = "Spybot Monitor";
     
     private SpybotApplication mApplication;
 
@@ -145,7 +145,7 @@ public class MonitorActivity extends Activity {
                             
                             else if (tokens[0].equals("KEEPALIVE")) {
                                 mSerialOutput.write(maintain);
-                                mSerialOutput.write((byte)0x0);
+                                mSerialOutput.write((byte)0);
                             }
                             
                             mNetworkOutput.writeObject("ACK");
@@ -187,7 +187,6 @@ public class MonitorActivity extends Activity {
         }
     }
 
-    
     private void DisplayError(int resourceId) {
         AlertDialog.Builder b = new AlertDialog.Builder(this);
         b.setTitle("Error");
@@ -244,18 +243,10 @@ public class MonitorActivity extends Activity {
         mSerialText = (TextView)findViewById(R.id.serial_text);
         mNetworkText = (TextView)findViewById(R.id.network_text);
         
-        final Button led1Button = (Button)findViewById(R.id.led1_button);
-        led1Button.setOnClickListener(new View.OnClickListener() {
+        final Button disconnectButton = (Button)findViewById(R.id.disconnect_button);
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (mSerialOutput != null) {
-                    try {
-                        mSerialOutput.write(led1);
-                        mSerialOutput.write((byte)0xaa);
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                        return;
-                    }
                 }
             }
         });
